@@ -17,9 +17,15 @@ struct ContentView: View {
     @State var sumAI : Int
     @State var ani = false
     @State var aniAI = false
-    @State var readyToRoll = false
+    @State var disableButton = false
     @State var winner: String
-    @State var timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @State var bet = true
+    @State var showBet = false
+    @StateObject var user = User()
+    @State var bid = 0.0
+    @State var guessHigh : Bool?
+    
+    
     @State var timerCounter = 5
     
     var body: some View {
@@ -27,6 +33,7 @@ struct ContentView: View {
             Color(red: 38/256, green: 108/256, blue: 59/256)
                 .ignoresSafeArea()
             VStack {
+                Spacer()
                 HStack {
                     Dice(diceNumber:diceNumberAI1, animation: aniAI)
                     Dice(diceNumber: diceNumberAI2, animation: aniAI)
@@ -41,27 +48,45 @@ struct ContentView: View {
                 .onAppear(perform: {
                     rollAI()
                 })
-                Button(action: {
-                    roll()
-                    
-                }, label: {
-                    Text("Roll")
-                        .font(.title)
-                        .foregroundColor(.white)
-                    
-                })
-                .padding()
-                .background(Color(.red))
-                .cornerRadius(15.0)
                 
+                HStack {
+                    Spacer()
+                    
+                    Button(action: {
+                        rollHuman()
+                    }, label: {
+                        Text("Roll")
+                            .buttonTextStyle()
+                        
+                    })
+                    .buttonStyle()
+                    .disabled(bid == 0.0)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        showBet.toggle()
+                    }, label: {
+                        Text("Bet")
+                            .buttonTextStyle()
+                    })
+                    
+                    .buttonStyle()
+                    
+                    
+                    Spacer()
+                }
+                Spacer()
+                Text("Your bid: \(bid, specifier: "%.1f")")
+                
+                Text("Cash: \(user.cash, specifier: "%.1f")")
+                Spacer()
                 
             }
-            .onReceive(timer, perform: { _ in
-                if readyToRoll {
-                    readyToRoll = false
-                    rollAI()
-                }
+            .sheet(isPresented: $showBet, content: {
+                betSheet(user: user, bid: $bid, guessHigh: $guessHigh)
             })
+           
         }
     }
     
@@ -75,7 +100,7 @@ struct ContentView: View {
         
     }
     
-    func roll() {
+    func rollHuman() {
         diceNumber1 = Int.random(in: 1...6)
         diceNumber2 = Int.random(in: 1...6)
         sum = diceNumber1 + diceNumber2
@@ -84,19 +109,32 @@ struct ContentView: View {
     }
     
     func getWinner() {
-        if sum > sumAI {
-            winner = "You win"
-        } else if sum < sumAI {
-            winner = "AI win"
-        } else {
-            winner = "It's a draw"
+        if let higher = guessHigh {
+            if (sum > sumAI && higher) || ( sum < sumAI && !higher) {
+                winner = "You win"
+                user.win(winnings: bid * 2)
+            } else if sum == sumAI {
+                winner = "It's a draw, no one wins"
+            } else {
+                winner = "You lose!"
+                user.lose(bet: bid)
+            }
         }
-        readyToRoll = true
+        if user.cash < 0.1 {
+            user.cash = 100.0
+        }
+        bid = 0.0
+        let timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false, block: {timer in
+            
+                rollAI()
+            timer.invalidate()
+        })
         
         
     }
     
 }
+
 
 struct Dice: View {
     let diceNumber: Int
@@ -110,6 +148,78 @@ struct Dice: View {
     }
 }
 
-#Preview {
-    ContentView(sum: 0, sumAI:  0, winner: "")
+struct betSheet: View {
+    
+    @Environment(\.dismiss) var dismiss
+    @ObservedObject var user = User()
+    @Binding var bid : Double
+    @Binding var guessHigh: Bool?
+//    @State var cash = 100.0
+    var body: some View {
+        ZStack {
+            Color(red: 38/256, green: 108/256, blue: 59/256)
+                .ignoresSafeArea()
+            VStack {
+                Spacer()
+                Text("Place your bets!")
+                    .buttonTextStyle()
+                Spacer()
+                Slider(value: $bid, in: 0 ... user.cash)
+                Text("Your bet: \(bid, specifier: "%.1f")")
+                    .foregroundColor(.white)
+                    
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        guessHigh = true
+                        dismiss()
+                    }, label: {
+                        Text("Higher")
+                            .buttonTextStyle()
+                    })
+                    .buttonStyle()
+                    Spacer()
+                    Button(action: {
+                        guessHigh = false
+                        dismiss()
+                    }, label: {
+                        Text("Lower")
+                            .buttonTextStyle()
+                    })
+                    .buttonStyle()
+                    Spacer()
+                }
+                Spacer()
+            }
+        }
+    }
+}
+
+struct ButtonModifiers : ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(.horizontal, 40)
+            .padding(.vertical, 10)
+            .background(Color(.red))
+            .cornerRadius(15.0)
+    }
+
+}
+struct ButtonTextModifers: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .foregroundColor(.white)
+            .font(/*@START_MENU_TOKEN@*/.title/*@END_MENU_TOKEN@*/)
+            .fontWeight(.bold)
+    }
+}
+
+extension View {
+    func buttonStyle() -> some View {
+        self.modifier(ButtonModifiers())
+    }
+    func buttonTextStyle() -> some View {
+        self.modifier(ButtonTextModifers())
+    }
 }
