@@ -8,14 +8,17 @@
 import Foundation
 
 class User: ObservableObject {
-    var money: Int = 0
+    @Published var cash: Double = 100
     
-    func setBet()-> Int {
-        self.money -= 5
+    func setBet() -> Int {
+        self.cash -= 5
         return 5
     }
     
-    func win(winnings: Int) {
-        self.money += winnings
+    func win(winnings: Double) {
+        self.cash += winnings
+    }
+    func lose(bet: Double) {
+        self.cash -= bet
     }
 }
