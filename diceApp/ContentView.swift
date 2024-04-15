@@ -39,8 +39,7 @@ struct ContentView: View {
                     Dice(diceNumber: diceNumberAI2, animation: aniAI)
                 }
                 Text("\(winner)")
-                    .font(.title)
-                    .foregroundColor(.white)
+                    .textStyleLarge()
                 HStack {
                     Dice(diceNumber: diceNumber1, animation: ani)
                     Dice(diceNumber: diceNumber2, animation: ani)
@@ -78,8 +77,14 @@ struct ContentView: View {
                 }
                 Spacer()
                 Text("Your bid: \(bid, specifier: "%.1f")")
+                    .textStyleSmall()
                 
-                Text("Cash: \(user.cash, specifier: "%.1f")")
+                HStack {
+                    Image(systemName: "dollarsign.circle")
+                        .foregroundColor(.white)
+                    Text(": \(user.cash, specifier: "%.1f")")
+                        .textStyleSmall()
+                }
                 Spacer()
                 
             }
@@ -162,11 +167,11 @@ struct betSheet: View {
             VStack {
                 Spacer()
                 Text("Place your bets!")
-                    .buttonTextStyle()
+                    .textStyleLarge()
                 Spacer()
                 Slider(value: $bid, in: 0 ... user.cash)
                 Text("Your bet: \(bid, specifier: "%.1f")")
-                    .foregroundColor(.white)
+                    .textStyleSmall()
                     
                 Spacer()
                 HStack {
@@ -214,6 +219,21 @@ struct ButtonTextModifers: ViewModifier {
             .fontWeight(.bold)
     }
 }
+struct textModifiersSmall: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .foregroundColor(.white)
+            .font(.body)
+    }
+}
+struct textModifiersBig: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .foregroundColor(.white)
+            .font(.title)
+            .fontWeight(.bold)
+    }
+}
 
 extension View {
     func buttonStyle() -> some View {
@@ -221,5 +241,11 @@ extension View {
     }
     func buttonTextStyle() -> some View {
         self.modifier(ButtonTextModifers())
+    }
+    func textStyleSmall() -> some View {
+        self.modifier(textModifiersSmall())
+    }
+    func textStyleLarge() -> some View {
+        self.modifier(textModifiersBig())
     }
 }
